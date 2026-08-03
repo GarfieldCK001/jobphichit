@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
-import { useState, useEffect } from 'react';
-import { Menu, X, Briefcase, User, LogOut, Settings, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Menu, X, Briefcase, User, LogOut, ChevronDown } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Profile } from '@/types';
 
@@ -19,26 +19,44 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const supabase = createClient();
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const fetchProfile = async (userId: string) => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    setProfile(data);
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
-      if (user) {
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-          .then(({ data }) => setProfile(data));
-      }
+      if (user) fetchProfile(user.id);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      const u = session?.user ?? null;
+      setUser(u);
+      if (u) fetchProfile(u.id);
+      else setProfile(null);
     });
 
-    return () => subscription.unsubscribe();
+    // Close user menu on outside click
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      subscription.unsubscribe();
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
+
 
   const switchLocale = (newLocale: string) => {
     const pathWithoutLocale = pathname.replace(/^\/(th|en|zh)/, '');
@@ -47,9 +65,11 @@ export default function Header() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push(`/${locale}`);
     setUser(null);
     setProfile(null);
+    setUserMenuOpen(false);
+    router.push(`/${locale}`);
+    router.refresh(); // Clear server-side session cache
   };
 
   const getDashboardPath = () => {
@@ -107,7 +127,7 @@ export default function Header() {
 
             {/* User Menu */}
             {user ? (
-              <div style={{ position: 'relative' }}>
+              <div style={{ position: 'relative' }} ref={menuRef}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   style={{

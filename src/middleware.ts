@@ -12,7 +12,10 @@ const intlMiddleware = createMiddleware({
 });
 
 export async function middleware(request: NextRequest) {
-  const response = intlMiddleware(request);
+  // Start with a mutable response
+  let response = NextResponse.next({
+    request: { headers: request.headers },
+  });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,29 +26,38 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
+          // Write cookies to both request and response so Server Components can read them
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
+          response = NextResponse.next({
+            request: { headers: request.headers },
           });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            response.cookies.set(name, value, options)
+          );
         },
       },
     }
   );
 
+  // IMPORTANT: always call getUser() — this refreshes the session if needed
   const { data: { user } } = await supabase.auth.getUser();
 
   // Protect dashboard routes
   const pathname = request.nextUrl.pathname;
   const pathWithoutLocale = pathname.replace(/^\/(th|en|zh)/, '');
+  const locale = pathname.split('/')[1] || defaultLocale;
 
   const protectedPaths = ['/seeker', '/employer', '/admin'];
   const isProtected = protectedPaths.some(p => pathWithoutLocale.startsWith(p));
 
   if (isProtected && !user) {
-    const locale = pathname.split('/')[1] || defaultLocale;
     return NextResponse.redirect(new URL(`/${locale}/auth/login`, request.url));
   }
 
-  return response;
+  // Run i18n middleware after auth check
+  return intlMiddleware(request);
 }
 
 export const config = {

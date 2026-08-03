@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
@@ -18,6 +18,15 @@ export default function LoginPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const searchParams = useSearchParams();
+
+  // Show error from OAuth redirect (e.g. Google not configured)
+  useEffect(() => {
+    const urlError = searchParams.get('error');
+    if (urlError === 'auth_failed') {
+      setError('ล็อกอินไม่สำเร็จ อาจเกิดจากปุ่ม Google/Facebook ยังไม่ได้ตั้งค่า กรุณาใช้อีเมลและรหัสผ่านแทน');
+    }
+  }, [searchParams]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +34,13 @@ export default function LoginPage() {
     setError('');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+      if (error.message.toLowerCase().includes('invalid') || error.message.toLowerCase().includes('credentials')) {
+        setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+      } else if (error.message.toLowerCase().includes('email not confirmed')) {
+        setError('กรุณายืนยันอีเมลก่อน โดยกดลิงก์ในอีเมลที่ส่งให้คุณ');
+      } else {
+        setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+      }
     } else {
       router.push(`/${locale}`);
       router.refresh();

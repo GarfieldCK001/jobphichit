@@ -62,31 +62,44 @@ export default function RegisterPage() {
       if (signUpError) {
         const errorMsg = signUpError.message || JSON.stringify(signUpError);
         console.error('Supabase SignUp Error:', signUpError);
-        if (errorMsg.toLowerCase().includes('already') || errorMsg.toLowerCase().includes('registered')) {
+        if (errorMsg.toLowerCase().includes('already registered') || errorMsg.toLowerCase().includes('already exists')) {
           setError('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบ');
+        } else if (errorMsg.toLowerCase().includes('invalid email')) {
+          setError('รูปแบบอีเมลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
+        } else if (errorMsg.toLowerCase().includes('password')) {
+          setError('รหัสผ่านไม่ผ่านเงื่อนไข กรุณาใช้รหัสผ่านที่มีความยาวอย่างน้อย 8 ตัวอักษร');
         } else {
-          setError(`ข้อผิดพลาดจากระบบ: ${errorMsg}`);
+          setError(`เกิดข้อผิดพลาด: ${errorMsg}`);
         }
-      } else {
-        if (data.user) {
+      } else if (data.user) {
+        // If session exists (email confirmation disabled), save profile immediately
+        if (data.session) {
           await supabase.from('profiles').upsert({
             id: data.user.id,
             role,
             full_name: fullName,
             phone,
-          });
+          }, { onConflict: 'id' });
 
           if (role === 'employer' && companyName) {
             await supabase.from('employer_profiles').upsert({
               user_id: data.user.id,
               company_name: companyName,
-            });
+            }, { onConflict: 'user_id' });
           }
         }
-        setSuccess(t('auth.registerSuccess') || 'สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลยืนยันตัวตน');
+        // Show success — profile will be created by DB trigger or on first login
+        setSuccess(
+          data.session
+            ? `สมัครสมาชิกสำเร็จ! ยินดีต้อนรับสู่ JobPhichit`
+            : `ส่งอีเมลยืนยันตัวตนไปที่ ${email} แล้ว กรุณาเช็คอีเมลและคลิกลิงก์เพื่อเปิดใช้งานบัญชี`
+        );
+      } else {
+        setError('ไม่สามารถสมัครสมาชิกได้ กรุณาลองใหม่อีกครั้ง');
       }
-    } catch (err: any) {
-      setError(typeof err?.message === 'string' ? err.message : 'เกิดข้อผิดพลาดในการสมัครสมาชิก');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
+      setError(msg);
     } finally {
       setLoading(false);
     }
