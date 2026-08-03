@@ -60,9 +60,15 @@ export default function RegisterPage() {
       });
 
       if (signUpError) {
-        const errorMsg = signUpError.message || JSON.stringify(signUpError);
+        let errorMsg = signUpError.message || '';
+        if (!errorMsg || errorMsg === '{}' || errorMsg === '[object Object]') {
+          errorMsg = JSON.stringify(signUpError);
+        }
         console.error('Supabase SignUp Error:', signUpError);
-        if (errorMsg.toLowerCase().includes('already registered') || errorMsg.toLowerCase().includes('already exists')) {
+
+        if (!errorMsg || errorMsg === '{}' || errorMsg === '[object Object]') {
+          setError('อีเมลนี้อาจเคยลงทะเบียนไว้แล้ว กรุณาตรวจสอบอีเมลหรือกด "เข้าสู่ระบบ"');
+        } else if (errorMsg.toLowerCase().includes('already') || errorMsg.toLowerCase().includes('registered') || errorMsg.toLowerCase().includes('exists')) {
           setError('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบ');
         } else if (errorMsg.toLowerCase().includes('invalid email')) {
           setError('รูปแบบอีเมลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง');
