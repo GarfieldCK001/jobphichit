@@ -39,8 +39,8 @@ export default async function LocaleLayout({
   };
 
   return (
-    <html lang={langMap[locale] || 'th'}>
-      <body>
+    <html lang={langMap[locale] || 'th'} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <NextIntlClientProvider messages={messages}>
           {children}
         </NextIntlClientProvider>

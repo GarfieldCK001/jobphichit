@@ -1,4 +1,4 @@
-# 🌿 JobPhichit.com — คู่มือ Deploy
+# 🌿 JobPhichit.com — คู่มือ Deploy & สรุปโครงการ
 
 ## โครงสร้างโปรเจกต์
 ```
@@ -11,87 +11,41 @@ jobphichit/
 │   ├── i18n/                 ← i18n config
 │   └── middleware.ts         ← Auth + i18n routing
 ├── messages/                 ← Thai/English/Chinese translations
-├── .env.local                ← Environment variables (ห้าม push ขึ้น Git!)
+├── .env.local                ← Environment variables
 └── next.config.mjs
 ```
 
-## ขั้นตอน Deploy บน Vercel
+## ✅ สรุปหน้าที่สร้างเสร็จสมบูรณ์ 100%
 
-### 1. Push ขึ้น GitHub
+| หน้า | URL | คำอธิบาย |
+|------|-----|----------|
+| หน้าหลัก | `/th` | Hero Search, โฆษณา 15 ช่อง, งานเด่น, งานล่าสุด, 3 ขั้นตอนใช้งาน |
+| ค้นหางาน | `/th/jobs` | ตัวกรองคำค้น, ประเภทงาน, 13 อำเภอ, ช่วงเงินเดือน |
+| รายละเอียดงาน | `/th/job/[id]` | ปุ่ม Quick Apply, บันทึกงาน, ข้อมูลบริษัท, ยอดดูงาน |
+| เข้าสู่ระบบ | `/th/auth/login` | Email/Password, Google OAuth, Facebook OAuth |
+| สมัครสมาชิก | `/th/auth/register` | เลือกรอรับงาน / นายจ้าง |
+| ลืมรหัสผ่าน | `/th/auth/forgot-password` | ส่งอีเมลรีเซ็ตรหัสผ่าน |
+| นโยบายความเป็นส่วนตัว | `/th/privacy` | รองรับ PDPA |
+| ข้อกำหนดการใช้งาน | `/th/terms` | เงื่อนไขการใช้งาน & Disclaimer |
+| Dashboard ผู้หางาน | `/th/seeker/dashboard` | สถิติสถานะการสมัครงาน |
+| โปรไฟล์ผู้หางาน | `/th/seeker/profile` | โปรไฟล์ย่อรายวัน / โปรไฟล์เต็ม + อัปโหลดเรซูเม่ PDF |
+| ประวัติการสมัครงาน | `/th/seeker/applications` | ตารางสถานะการสมัคร |
+| งานที่บันทึก | `/th/seeker/bookmarks` | งานที่บุ๊กมาร์ก |
+| Dashboard นายจ้าง | `/th/employer/dashboard` | สถิติผู้สมัครงาน + ยอดดู |
+| ประกาศงานนายจ้าง | `/th/employer/jobs` | รายการประกาศงานทั้งหมด |
+| ลงประกาศงานใหม่ | `/th/employer/jobs/new` | ฟอร์มลงประกาศงานฟรี |
+| ดูรายชื่อผู้สมัคร | `/th/employer/jobs/[id]/applicants` | ตาราง List View จัดการสถานะผู้สมัคร |
+| Dashboard แอดมิน | `/th/admin/dashboard` | ภาพรวมระบบ |
+| จัดการประกาศงาน | `/th/admin/jobs` | อนุมัติ / ปฏิเสธ / งานเด่น ⭐ |
+| จัดการผู้ใช้ | `/th/admin/users` | สลับสิทธิ์ Role สมาชิก |
+| จัดการโฆษณา 15 ช่อง | `/th/admin/ads` | อัปโหลดแบนเนอร์, ลิงก์ร้านค้า, วันหมดอายุ |
+| จัดการหมวดหมู่ | `/th/admin/categories` | เพิ่ม/ลบ หมวดหมู่งาน และ 13 อำเภอพิจิตร |
+
+---
+
+## 🛠️ วิธี Run ในเครื่องตัวเอง
 ```bash
-cd /Users/chanatipk/.gemini/antigravity/scratch/jobphichit
-git init
-git add .
-git commit -m "🌿 Initial JobPhichit.com"
-git remote add origin https://github.com/YOUR_USERNAME/jobphichit.git
-git push -u origin main
-```
-
-### 2. Deploy บน Vercel
-1. ไปที่ **vercel.com** → Login → **Add New Project**
-2. Import GitHub Repository: `jobphichit`
-3. ที่ **Environment Variables** ใส่ค่าเหล่านี้:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL = https://lzumsiptvnzwbyemhkau.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY = sb_publishable_vKmk4sgILk9otNwjArKYcg_jrz40K83
-   SUPABASE_SERVICE_ROLE_KEY = [ค่า service_role จาก Supabase Settings]
-   NEXT_PUBLIC_SITE_URL = https://jobphichit.com
-   NEXT_PUBLIC_CONTACT_LINE = chanatipfew
-   ```
-4. กด **Deploy** → รอ 2-3 นาที → ได้ URL `jobphichit.vercel.app`
-
-### 3. ผูกโดเมน
-1. ใน Vercel → **Settings → Domains → Add Domain**
-2. ใส่ `jobphichit.com`
-3. ที่ Cloudflare/Namecheap → ตั้ง DNS ตามที่ Vercel บอก:
-   - Type: `A`, Name: `@`, Value: `76.76.21.21`
-   - Type: `CNAME`, Name: `www`, Value: `cname.vercel-dns.com`
-4. รอ 24-48 ชั่วโมง
-
-### 4. ตั้งค่า Admin Account
-หลัง Deploy แล้ว ต้องตั้ง role=admin ให้ตัวเอง:
-1. ไปที่ **Supabase → SQL Editor**
-2. Run:
-```sql
-UPDATE profiles 
-SET role = 'admin' 
-WHERE id = (SELECT id FROM auth.users WHERE email = 'YOUR_EMAIL@gmail.com');
-```
-3. Login เว็บแล้วไปที่ `/th/admin/dashboard`
-
-### 5. อัปเดต Facebook OAuth Redirect URI
-หลังได้โดเมนจริง ไปอัปเดตที่ Facebook Developers:
-```
-Valid OAuth Redirect URIs:
-https://lzumsiptvnzwbyemhkau.supabase.co/auth/v1/callback
-```
-และที่ Supabase → Authentication → URL Configuration:
-```
-Site URL: https://jobphichit.com
-Redirect URLs: https://jobphichit.com/**
-```
-
-## 🛠️ Run ในเครื่องตัวเอง
-```bash
-cd /Users/chanatipk/.gemini/antigravity/scratch/jobphichit
+cd ~/Desktop/jobphichit
 npm run dev
 # เปิดที่ http://localhost:3000/th
 ```
-
-## 📁 หน้าที่มีอยู่แล้ว
-| หน้า | URL |
-|------|-----|
-| หน้าหลัก | `/th` |
-| ค้นหางาน | `/th/jobs` |
-| เข้าสู่ระบบ | `/th/auth/login` |
-| สมัครสมาชิก | `/th/auth/register` |
-| นโยบายความเป็นส่วนตัว | `/th/privacy` |
-| Admin Dashboard | `/th/admin/dashboard` |
-
-## 🔮 หน้าที่ยังต้องสร้างต่อ
-- `/th/job/[id]` — รายละเอียดงาน
-- `/th/seeker/dashboard` — Dashboard ผู้หางาน
-- `/th/employer/dashboard` — Dashboard นายจ้าง
-- `/th/admin/ads` — จัดการโฆษณา 15 ช่อง
-- `/th/admin/jobs` — อนุมัติ/ปฏิเสธประกาศงาน
-- `/th/terms` — ข้อกำหนดการใช้งาน
