@@ -60,7 +60,10 @@ export default function RegisterPage() {
       });
 
       if (signUpError) {
-        const msg = signUpError.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
+        let msg = signUpError.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
+        if (msg === '{}' || msg === '[object Object]' || !msg.trim()) {
+          msg = 'ไม่สามารถสมัครสมาชิกได้ กรุณาตรวจสอบว่าอีเมลนี้เคยสมัครแล้วหรือยัง';
+        }
         if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('registered')) {
           setError('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบ');
         } else {
