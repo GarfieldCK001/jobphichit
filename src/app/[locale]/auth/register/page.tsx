@@ -49,37 +49,46 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName, role, phone, company_name: companyName },
-        emailRedirectTo: `${location.origin}/${locale}/auth/callback?role=${role}`,
-      },
-    });
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName, role, phone, company_name: companyName },
+          emailRedirectTo: `${location.origin}/${locale}/auth/callback?role=${role}`,
+        },
+      });
 
-    if (signUpError) {
-      setError(signUpError.message.includes('already') ? 'อีเมลนี้ถูกใช้งานแล้ว' : signUpError.message);
-    } else {
-      // Update profile with role
-      if (data.user) {
-        await supabase.from('profiles').upsert({
-          id: data.user.id,
-          role,
-          full_name: fullName,
-          phone,
-        });
-
-        if (role === 'employer' && companyName) {
-          await supabase.from('employer_profiles').upsert({
-            user_id: data.user.id,
-            company_name: companyName,
-          });
+      if (signUpError) {
+        const msg = signUpError.message || 'เกิดข้อผิดพลาดในการสมัครสมาชิก';
+        if (msg.toLowerCase().includes('already') || msg.toLowerCase().includes('registered')) {
+          setError('อีเมลนี้ถูกใช้งานแล้ว กรุณาเข้าสู่ระบบ');
+        } else {
+          setError(msg);
         }
+      } else {
+        if (data.user) {
+          await supabase.from('profiles').upsert({
+            id: data.user.id,
+            role,
+            full_name: fullName,
+            phone,
+          });
+
+          if (role === 'employer' && companyName) {
+            await supabase.from('employer_profiles').upsert({
+              user_id: data.user.id,
+              company_name: companyName,
+            });
+          }
+        }
+        setSuccess(t('auth.registerSuccess') || 'สมัครสมาชิกสำเร็จ! กรุณาตรวจสอบอีเมลยืนยันตัวตน');
       }
-      setSuccess(t('auth.registerSuccess'));
+    } catch (err: any) {
+      setError(typeof err?.message === 'string' ? err.message : 'เกิดข้อผิดพลาดในการสมัครสมาชิก');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   if (success) {
